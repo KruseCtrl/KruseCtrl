@@ -1,18 +1,9 @@
 #!/bin/bash
 
-touch /var/log/generic-test.out
+sudo dnf install -y cowsay
+sudo dnf install -y fortune-mod
 
-echo '
- _________________________________
-< just a generic test script here >
- ---------------------------------
-  \
-   \   \_\_    _/_/
-    \      \__/
-           (oo)\_______
-           (__)\       )\/\
-               ||----w |
-               ||     ||
+# remove telebears
+sudo rm $(find /usr/share/cowsay/ -name "telebears.cow")
 
-' > /var/log/generic-test.out
-
+fortune | cowsay -f `ls /usr/share/cowsay/ | shuf -n 1` 1>"/var/log/generic-test.log"
