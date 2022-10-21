@@ -1,5 +1,9 @@
 #!/bin/bash
 
-echo "just a generic test script here" > /home/flight/test.out
-echo "just a generic test script here" > /home/centos/test.out
-echo "just a generic test script here" > /home/root/test.out
+sudo dnf install -y cowsay
+sudo dnf install -y fortune-mod
+
+# remove telebears
+sudo rm $(find /usr/share/cowsay/ -name "telebears.cow")
+
+fortune | cowsay -f `ls /usr/share/cowsay/cows/ | shuf -n 1` 1>"/var/log/generic-test.log"
