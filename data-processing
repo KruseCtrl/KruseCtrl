@@ -1,0 +1,153 @@
+#!/usr/bin/env ruby
+require 'time'
+
+all_info_filename = ARGV[0]
+uuid_filename = ARGV[1]
+
+# print tests
+puts "All info file: #{all_info_filename}." 
+puts "Instance info file: #{uuid_filename}."
+# end
+team_to_uni = { "team0" => "Runtime Terrors",
+"team1" => "Team York",
+"team2" => "ClusDur",
+"team3" => "UCL",
+"team4" => "Bristol A",
+"team5" => "Bristol B",
+"team6" => "Alces"}
+
+all_info_file = File.open(all_info_filename)
+data_lines = all_info_file.readlines.map(&:chomp)
+
+instances_info = { uuid: Array.new,
+hostname: Array.new,
+flavor: Array.new,
+name: Array.new}
+
+
+data_lines.each do |line|
+  if line.include? "| team" # this should be just the lines with data
+    temp = line.split('|')
+    temp.map!(&:strip)
+    temp.reject!{|r| r.empty?}
+    # temp should be just uuid hostname flavor and name
+
+    instances_info[:uuid] << temp[0]
+    instances_info[:hostname] << temp[1]
+    instances_info[:flavor] << temp[2]
+    instances_info[:name] << temp[3]
+  end
+end
+
+all_info_file.close
+
+
+instance_uuid = ""
+total_run = 0
+total_stopped = 0
+creation_time = 0
+previous_line = Array.new(2)
+prev_data = false
+File.foreach(uuid_filename) do |line|
+
+  if line.include? "WHERE instance_uuid =" # First line of a set of instance data
+    # print data on previous instance
+    if prev_data 
+      if previous_line[0] != "delete"
+        # output totals data for previous instance data
+        puts "---"
+        puts "Total time spent running: #{total_run / 3600} hours"
+        puts "Total time spent shutdown: #{total_stopped / 3600} hours"
+        puts "Total lifetime: #{(Time.parse(previous_line[1]) - creation_time)  / 3600} hours"
+        puts "--------------------------------------------------------------------------------------"
+      end
+
+      # reset variables
+      instance_uuid = ""
+      total_run = 0
+      total_stopped = 0
+      creation_time = 0
+      previous_line = Array.new(2)
+    else
+      prev_data = true
+      puts "--------------------------------------------------------------------------------------"
+    end
+  
+    # begin anew
+    chars = line.split('')
+    uuid_check = false
+    chars.each{ |c|
+      if c == '"' # looking for quote of uuid
+        uuid_check = uuid_check.! # if false is now true, if true is now false
+      elsif uuid_check # is true?
+        instance_uuid += c
+      end
+    }  
+    index = instances_info[:uuid].find_index(instance_uuid)
+    puts "Instance UUID: " + instance_uuid
+    puts "Hostname: #{instances_info[:hostname][index]}"
+    puts "Flavor: #{instances_info[:flavor][index]}"
+    puts "Team: #{instances_info[:name][index]}"
+    puts "Team name: #{team_to_uni[instances_info[:name][index]]}"
+
+  elsif  !(line.include? "action") and !(line.include? "+") # should be just actions 
+    # split data into time and action, removing other bits
+    current_line = line.split('|')
+    current_line.map! { |d| d.strip }
+    current_line.reject!{|r| r.empty?}
+
+    # the first action will always be create (unless there is something weird?)
+    # I also think that create doesn't get duped
+    case current_line[0]
+    when "create"
+      puts "Instance created at: #{current_line[1]}"
+      creation_time = Time.parse(current_line[1])
+      previous_line = current_line
+
+    when "start" # start sometimes dupes
+      if previous_line[0] != "start"
+        puts "Instance started at: " + current_line[1]
+        if previous_line[0] == "stop"
+          timediff = (Time.parse(current_line[1]) - Time.parse(previous_line[1]))
+          puts "Instance was stopped for: #{timediff/3600} hours"
+          total_stopped += timediff
+        end
+        previous_line = current_line
+      end
+
+    when "stop"
+      if previous_line[0] != "stop" and previous_line[0] != "delete"
+
+        puts "Instance stopped at: " + current_line[1]
+        timediff = Time.parse(current_line[1]) - Time.parse(previous_line[1])
+
+        puts "Instance was running for: #{timediff / 3600} hours"
+        total_run += timediff
+
+        previous_line = current_line
+      end
+    
+    when "delete"
+      timediff = Time.parse(current_line[1]) - Time.parse(previous_line[1])
+
+      if previous_line[0] == "start" or previous_line[0] == "create"
+        puts "Instance stopped and deleted at: #{current_line[1]}"
+        puts "Instance was running for: #{timediff / 3600} hours"
+        total_run += timediff
+      elsif previous_line[0] == "stop" and previous_line[1] != current_line[1]
+        puts "Instance deleted at: " + current_line[1]
+        puts "Instance was stopped for: #{timediff / 3600} hours"
+        total_stopped += timediff
+      end
+      puts "---"
+      puts "Total time spent running: #{total_run / 3600} hours"
+      puts "Total time spent shutdown: #{total_stopped / 3600} hours"
+      puts "Total lifetime: #{(Time.parse(current_line[1]) - creation_time)  / 3600} hours"
+      puts "--------------------------------------------------------------------------------------"
+      previous_line = current_line
+    end
+  end
+
+ 
+end
+
