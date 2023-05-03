@@ -4,6 +4,7 @@
 
 I've been doing bash and ruby, I've been working a lot on automation of launching a cloud computing cluster. It launches from a ruby tty-prompt interface, running through several bash scripts and is connected to ARM templates, Heat templates and cloud formation templates to launch on openstack, aws or azure.
 
+I've also done a fair bit of writing [on this documentation](docs.openflighthpc.org)
 
 ## Learning
 I’m currently learning Ruby and Bash.
