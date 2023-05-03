@@ -1,5 +1,16 @@
-- 👋 Hi, I’m @KruseCtrl
-- 🌱 I’m currently learning Ruby and Bash
+# Hi, I’m @KruseCtrl
+
+## Recently?
+
+I've been doing bash and ruby, I've been working a lot on automation of launching a cloud computing cluster. It launches from a ruby tty-prompt interface, running through several bash scripts and is connected to ARM templates, Heat templates and cloud formation templates to launch on openstack, aws or azure.
+
+
+## Learning
+I’m currently learning Ruby and Bash.
+
+
+
+
 
 
 <!---
